@@ -1,0 +1,21 @@
+name: Build documentation CHM
+on:
+  push:
+    tags: ['v*']
+    paths: ['docs/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  chm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y fp-utils python3-markdown
+      - run: python3 docs/build/build-chm.py chm-build
+      - uses: actions/upload-artifact@v4
+        with: { name: guava-pattern-docs-chm, path: chm-build/guava-pattern-docs.chm }
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with: { files: chm-build/guava-pattern-docs.chm }

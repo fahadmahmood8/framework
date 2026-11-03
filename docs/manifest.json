@@ -1,0 +1,61 @@
+{
+  "name": "Guava Pattern documentation",
+  "version": "2.0.0",
+  "pages": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "file": "01-overview.md"
+    },
+    {
+      "id": "installation",
+      "title": "Installation",
+      "file": "02-installation.md"
+    },
+    {
+      "id": "quick-start",
+      "title": "Quick start (classic themes)",
+      "file": "03-quick-start.md"
+    },
+    {
+      "id": "tokens",
+      "title": "Placeholder tokens",
+      "file": "04-tokens.md"
+    },
+    {
+      "id": "template-parser",
+      "title": "Loops and conditions",
+      "file": "05-template-parser.md"
+    },
+    {
+      "id": "admin",
+      "title": "Admin panel and metabox",
+      "file": "06-admin.md"
+    },
+    {
+      "id": "field-types",
+      "title": "Field types",
+      "file": "07-field-types.md"
+    },
+    {
+      "id": "api",
+      "title": "PHP API reference",
+      "file": "08-api.md"
+    },
+    {
+      "id": "customizing",
+      "title": "Customizing",
+      "file": "09-customizing.md"
+    },
+    {
+      "id": "upgrading",
+      "title": "Upgrading",
+      "file": "10-upgrading.md"
+    },
+    {
+      "id": "troubleshooting",
+      "title": "Troubleshooting",
+      "file": "11-troubleshooting.md"
+    }
+  ]
+}
