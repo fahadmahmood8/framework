@@ -1,54 +1,76 @@
-<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access pages directly.
+<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access directly.
 /**
  *
- * Field: Sorter
+ * Field: sorter
  *
  * @since 1.0.0
  * @version 1.0.0
  *
  */
-class GPFramework_Option_Sorter extends GPFramework_Options {
+if ( ! class_exists( 'GP_Field_sorter' ) ) {
+  class GP_Field_sorter extends GP_Fields {
 
-  public function __construct( $field, $value = '', $unique = '' ) {
-    parent::__construct( $field, $value, $unique );
-  }
-
-  public function output(){
-
-    echo $this->element_before();
-
-    $value          = $this->element_value();
-    $value          = ( ! empty( $value ) ) ? $value : $this->field['default'];
-    $enabled        = ( ! empty( $value['enabled'] ) ) ? $value['enabled'] : array();
-    $disabled       = ( ! empty( $value['disabled'] ) ) ? $value['disabled'] : array();
-    $enabled_title  = ( isset( $this->field['enabled_title'] ) ) ? $this->field['enabled_title'] : __( 'Enabled Modules', 'gp-framework' );
-    $disabled_title = ( isset( $this->field['disabled_title'] ) ) ? $this->field['disabled_title'] : __( 'Disabled Modules', 'gp-framework' );
-
-    echo '<div class="gp-modules">';
-    echo '<h3>'. $enabled_title .'</h3>';
-    echo '<ul class="gp-enabled">';
-    if( ! empty( $enabled ) ) {
-      foreach( $enabled as $en_id => $en_name ) {
-        echo '<li><input type="hidden" name="'. $this->element_name( '[enabled]['. $en_id .']' ) .'" value="'. $en_name .'"/><label>'. $en_name .'</label></li>';
-      }
+    public function __construct( $field, $value = '', $unique = '', $where = '', $parent = '' ) {
+      parent::__construct( $field, $value, $unique, $where, $parent );
     }
-    echo '</ul>';
-    echo '</div>';
 
-    echo '<div class="gp-modules">';
-    echo '<h3>'. $disabled_title .'</h3>';
-    echo '<ul class="gp-disabled">';
-    if( ! empty( $disabled ) ) {
-      foreach( $disabled as $dis_id => $dis_name ) {
-        echo '<li><input type="hidden" name="'. $this->element_name( '[disabled]['. $dis_id .']' ) .'" value="'. $dis_name .'"/><label>'. $dis_name .'</label></li>';
+    public function render() {
+
+      $args = wp_parse_args( $this->field, array(
+        'disabled'       => true,
+        'enabled_title'  => esc_html__( 'Enabled', 'gp-framework' ),
+        'disabled_title' => esc_html__( 'Disabled', 'gp-framework' ),
+      ) );
+
+      echo $this->field_before();
+
+      $this->value      = ( ! empty( $this->value ) ) ? $this->value : $this->field['default'];
+      $enabled_options  = ( ! empty( $this->value['enabled'] ) ) ? $this->value['enabled'] : array();
+      $disabled_options = ( ! empty( $this->value['disabled'] ) ) ? $this->value['disabled'] : array();
+
+      echo '<div class="gp-sorter" data-depend-id="'. esc_attr( $this->field['id'] ) .'"></div>';
+
+      echo ( $args['disabled'] ) ? '<div class="gp-modules">' : '';
+
+      echo ( ! empty( $args['enabled_title'] ) ) ? '<div class="gp-sorter-title">'. esc_attr( $args['enabled_title'] ) .'</div>' : '';
+      echo '<ul class="gp-enabled">';
+      if ( ! empty( $enabled_options ) ) {
+        foreach ( $enabled_options as $key => $value ) {
+          echo '<li><input type="hidden" name="'. esc_attr( $this->field_name( '[enabled]['. $key .']' ) ) .'" value="'. esc_attr( $value ) .'"/><label>'. esc_attr( $value ) .'</label></li>';
+        }
       }
-    }
-    echo '</ul>';
-    echo '</div>';
-    echo '<div class="clear"></div>';
+      echo '</ul>';
 
-    echo $this->element_after();
+      // Check for hide/show disabled section
+      if ( $args['disabled'] ) {
+
+        echo '</div>';
+
+        echo '<div class="gp-modules">';
+        echo ( ! empty( $args['disabled_title'] ) ) ? '<div class="gp-sorter-title">'. esc_attr( $args['disabled_title'] ) .'</div>' : '';
+        echo '<ul class="gp-disabled">';
+        if ( ! empty( $disabled_options ) ) {
+          foreach ( $disabled_options as $key => $value ) {
+          echo '<li><input type="hidden" name="'. esc_attr( $this->field_name( '[disabled]['. $key .']' ) ) .'" value="'. esc_attr( $value ) .'"/><label>'. esc_attr( $value ) .'</label></li>';
+          }
+        }
+        echo '</ul>';
+        echo '</div>';
+
+      }
+
+
+      echo $this->field_after();
+
+    }
+
+    public function enqueue() {
+
+      if ( ! wp_script_is( 'jquery-ui-sortable' ) ) {
+        wp_enqueue_script( 'jquery-ui-sortable' );
+      }
+
+    }
 
   }
-
 }

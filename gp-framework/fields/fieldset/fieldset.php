@@ -1,38 +1,41 @@
-<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access pages directly.
+<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access directly.
 /**
  *
- * Field: Fieldset
+ * Field: fieldset
  *
  * @since 1.0.0
  * @version 1.0.0
  *
  */
-class GPFramework_Option_fieldset extends GPFramework_Options {
+if ( ! class_exists( 'GP_Field_fieldset' ) ) {
+  class GP_Field_fieldset extends GP_Fields {
 
-  public function __construct( $field, $value = '', $unique = '' ) {
-    parent::__construct( $field, $value, $unique );
-  }
+    public function __construct( $field, $value = '', $unique = '', $where = '', $parent = '' ) {
+      parent::__construct( $field, $value, $unique, $where, $parent );
+    }
 
-  public function output() {
+    public function render() {
 
-    echo $this->element_before();
+      echo $this->field_before();
 
-    echo '<div class="gp-inner">';
+      echo '<div class="gp-fieldset-content" data-depend-id="'. esc_attr( $this->field['id'] ) .'">';
 
-    foreach ( $this->field['fields'] as $field ) {
+      foreach ( $this->field['fields'] as $field ) {
 
-      $field_id    = ( isset( $field['id'] ) ) ? $field['id'] : '';
-      $field_value = ( isset( $this->value[$field_id] ) ) ? $this->value[$field_id] : '';
-      $unique_id   = $this->unique .'['. $this->field['id'] .']';
+        $field_id      = ( isset( $field['id'] ) ) ? $field['id'] : '';
+        $field_default = ( isset( $field['default'] ) ) ? $field['default'] : '';
+        $field_value   = ( isset( $this->value[$field_id] ) ) ? $this->value[$field_id] : $field_default;
+        $unique_id     = ( ! empty( $this->unique ) ) ? $this->unique .'['. $this->field['id'] .']' : $this->field['id'];
 
-      echo gp_add_element( $field, $field_value, $unique_id );
+        GP::field( $field, $field_value, $unique_id, 'field/fieldset' );
+
+      }
+
+      echo '</div>';
+
+      echo $this->field_after();
 
     }
 
-    echo '</div>';
-
-    echo $this->element_after();
-
   }
-
 }

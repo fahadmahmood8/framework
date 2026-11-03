@@ -1,201 +1,116 @@
-<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access pages directly.
+<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access directly.
 // ===============================================================================================
 // -----------------------------------------------------------------------------------------------
-// METABOX OPTIONS
+// METABOX SETTINGS: page options
+//
+// Every gp_page() / gp_page_option() call in a template registers a field (type, key, group,
+// repeater flag) in the _gp_page_arr, _gp_page_groups and _gp_repeater_groups options. Each
+// group becomes a tab of the "GP Pages" metabox. Values are stored in the GP_META post meta row
+// (one array per page), exactly as in every earlier release.
 // -----------------------------------------------------------------------------------------------
 // ===============================================================================================
-$options      = array();
 
-// -----------------------------------------
-// Page Metabox Options                    -
-// -----------------------------------------
-$options[]    = array(
-  'id'        => '_custom_page_options',
-  'title'     => 'Custom Page Options',
-  'post_type' => 'page',
-  'context'   => 'normal',
-  'priority'  => 'default',
-  'sections'  => array(
+if ( ! is_admin() || ! class_exists( 'GP' ) ) {
+  return;
+}
 
-    // begin: a section
-    array(
-      'name'  => 'section_1',
-      'title' => 'Section 1',
-      'icon'  => 'fa fa-cog',
+// Clear the collected registry (administrators only, nonce protected, see gp_reset_url( 'pages' )).
+if ( gp_can_reset( 'reset_gp_pages' ) ) {
+  delete_option( '_gp_page_arr' );
+  delete_option( '_gp_page_groups' );
+  delete_option( '_gp_repeater_groups' );
+}
 
-      // begin: fields
-      'fields' => array(
+$gp_page_arr    = get_option( '_gp_page_arr' );
+$gp_page_groups = get_option( '_gp_page_groups' );
+$gp_rep_groups  = get_option( '_gp_repeater_groups' );
+$gp_page_arr    = ( is_array( $gp_page_arr ) ) ? $gp_page_arr : array();
+$gp_page_groups = ( is_array( $gp_page_groups ) ) ? $gp_page_groups : array();
+$gp_rep_groups  = ( is_array( $gp_rep_groups ) ) ? $gp_rep_groups : array();
 
-        // begin: a field
-        array(
-          'id'    => 'section_1_text',
-          'type'  => 'text',
-          'title' => 'Text Field',
-        ),
-        // end: a field
+$gp_post_types  = apply_filters( 'gp_metabox_post_types', array( 'page' ) );
+$gp_prefix      = GP_META;
 
-        array(
-          'id'    => 'section_1_textarea',
-          'type'  => 'textarea',
-          'title' => 'Textarea Field',
-        ),
+// key => array( type, repeater ), the first registration of a key wins
+$gp_key_info = array();
+foreach ( $gp_page_arr as $gp_type => $gp_entries ) {
+  foreach ( (array) $gp_entries as $gp_entry ) {
+    $gp_key = ( is_array( $gp_entry ) ) ? ( isset( $gp_entry['key'] ) ? $gp_entry['key'] : '' ) : $gp_entry;
+    if ( $gp_key !== '' && ! isset( $gp_key_info[$gp_key] ) ) {
+      $gp_key_info[$gp_key] = array(
+        'type'     => $gp_type,
+        'repeater' => ( is_array( $gp_entry ) && ! empty( $gp_entry['repeater'] ) ),
+      );
+    }
+  }
+}
 
-        array(
-          'id'    => 'section_1_upload',
-          'type'  => 'upload',
-          'title' => 'Upload Field',
-        ),
+// repeater groups of the page post type
+$gp_rep_page = ( isset( $gp_rep_groups['page'] ) && is_array( $gp_rep_groups['page'] ) ) ? $gp_rep_groups['page'] : array();
 
-        array(
-          'id'    => 'section_1_switcher',
-          'type'  => 'switcher',
-          'title' => 'Switcher Field',
-          'label' => 'Yes, Please do it.',
-        ),
+$gp_sections = array();
 
-      ), // end: fields
-    ), // end: a section
+foreach ( $gp_page_groups as $gp_group => $gp_fields ) {
 
-    // begin: a section
-    array(
-      'name'  => 'section_2',
-      'title' => 'Section 2',
-      'icon'  => 'fa fa-tint',
-      'fields' => array(
+  if ( empty( $gp_fields ) ) {
+    continue;
+  }
 
-        array(
-          'id'      => 'section_2_color_picker_1',
-          'type'    => 'color_picker',
-          'title'   => 'Color Picker 1',
-          'default' => '#2ecc71',
-        ),
+  $gp_is_repeater    = in_array( $gp_group, $gp_rep_page, true );
+  $gp_section_fields = array();
 
-        array(
-          'id'      => 'section_2_color_picker_2',
-          'type'    => 'color_picker',
-          'title'   => 'Color Picker 2',
-          'default' => '#3498db',
-        ),
+  foreach ( array_unique( (array) $gp_fields ) as $gp_field ) {
 
-        array(
-          'id'      => 'section_2_color_picker_3',
-          'type'    => 'color_picker',
-          'title'   => 'Color Picker 3',
-          'default' => '#9b59b6',
-        ),
+    if ( ! isset( $gp_key_info[$gp_field] ) ) {
+      continue;
+    }
 
-        array(
-          'id'      => 'section_2_color_picker_4',
-          'type'    => 'color_picker',
-          'title'   => 'Color Picker 4',
-          'default' => '#34495e',
-        ),
+    $gp_type = gp_field_type( $gp_key_info[$gp_field]['type'] );
+    $gp_def  = array(
+      'id'      => $gp_field,
+      'type'    => $gp_type,
+      'title'   => ( function_exists( 'gp_capital' ) ) ? gp_capital( $gp_field ) : ucwords( str_replace( '_', ' ', $gp_field ) ),
+      'default' => '',
+    );
 
-        array(
-          'id'      => 'section_2_color_picker_5',
-          'type'    => 'color_picker',
-          'title'   => 'Color Picker 5',
-          'default' => '#e67e22',
-        ),
+    // the repeater flag is supported by the text and textarea fields
+    if ( $gp_key_info[$gp_field]['repeater'] && in_array( $gp_type, array( 'text', 'textarea' ), true ) ) {
+      $gp_def['repeater'] = true;
+    }
 
-      ),
-    ),
-    // end: a section
+    $gp_section_fields[] = $gp_def;
 
-  ),
-);
+  }
 
-// -----------------------------------------
-// Page Side Metabox Options               -
-// -----------------------------------------
-$options[]    = array(
-  'id'        => '_custom_page_side_options',
-  'title'     => 'Custom Page Side Options',
-  'post_type' => 'page',
-  'context'   => 'side',
-  'priority'  => 'default',
-  'sections'  => array(
+  if ( empty( $gp_section_fields ) ) {
+    continue;
+  }
 
-    array(
-      'name'   => 'section_3',
-      'fields' => array(
+  $gp_sections[] = array(
+    'title'  => ( function_exists( 'gp_capital' ) ) ? gp_capital( $gp_group ) : ucwords( str_replace( '_', ' ', $gp_group ) ),
+    'icon'   => 'fa fa-'. ( $gp_is_repeater ? 'redo' : 'circle' ),
+    'class'  => ( $gp_is_repeater ? 'repeater' : '' ),
+    'fields' => $gp_section_fields,
+  );
 
-        array(
-          'id'        => 'section_3_image_select',
-          'type'      => 'image_select',
-          'options'   => array(
-            'value-1' => 'http://guavapattern.com/assets/images/placeholder/65x65-2ecc71.gif',
-            'value-2' => 'http://guavapattern.com/assets/images/placeholder/65x65-e74c3c.gif',
-            'value-3' => 'http://guavapattern.com/assets/images/placeholder/65x65-3498db.gif',
-          ),
-          'default'   => 'value-2',
-        ),
+}
 
-        array(
-          'id'            => 'section_3_text',
-          'type'          => 'text',
-          'attributes'    => array(
-            'placeholder' => 'do stuff'
-          )
-        ),
+if ( ! empty( $gp_sections ) ) {
 
-        array(
-          'id'      => 'section_3_switcher',
-          'type'    => 'switcher',
-          'label'   => 'Are you sure ?',
-          'default' => true
-        ),
+  GP::createMetabox( $gp_prefix, array(
+    'title'     => 'GP Pages',
+    'post_type' => $gp_post_types,
+    'context'   => 'normal',
+    'priority'  => 'default',
+    'data_type' => 'serialize',
+    'theme'     => 'light',
+    'rest'      => false,
+  ) );
 
-      ),
-    ),
+  foreach ( $gp_sections as $gp_section ) {
+    GP::createSection( $gp_prefix, $gp_section );
+  }
 
-  ),
-);
+}
 
-// -----------------------------------------
-// Post Metabox Options                    -
-// -----------------------------------------
-$options[]    = array(
-  'id'        => '_custom_post_options',
-  'title'     => 'Custom Post Options',
-  'post_type' => 'post',
-  'context'   => 'normal',
-  'priority'  => 'default',
-  'sections'  => array(
-
-    array(
-      'name'   => 'section_4',
-      'fields' => array(
-
-        array(
-          'id'    => 'section_4_text',
-          'type'  => 'text',
-          'title' => 'Text Field',
-        ),
-
-        array(
-          'id'    => 'section_4_textarea',
-          'type'  => 'textarea',
-          'title' => 'Textarea Field',
-        ),
-
-        array(
-          'id'    => 'section_4_upload',
-          'type'  => 'upload',
-          'title' => 'Upload Field',
-        ),
-
-        array(
-          'id'    => 'section_4_switcher',
-          'type'  => 'switcher',
-          'title' => 'Switcher Field',
-          'label' => 'Yes, Please do it.',
-        ),
-
-      ),
-    ),
-
-  ),
-);
-
-GPFramework_Metabox::instance( $options );
+unset( $gp_page_arr, $gp_page_groups, $gp_rep_groups, $gp_post_types, $gp_prefix, $gp_key_info, $gp_type, $gp_entries, $gp_entry, $gp_key, $gp_rep_page, $gp_sections, $gp_group, $gp_fields, $gp_is_repeater, $gp_section_fields, $gp_field, $gp_def, $gp_section );

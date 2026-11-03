@@ -1,4 +1,4 @@
-<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access pages directly.
+<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access directly.
 /**
  *
  * Email validate
@@ -7,15 +7,14 @@
  * @version 1.0.0
  *
  */
-if( ! function_exists( 'gp_validate_email' ) ) {
-  function gp_validate_email( $value, $field ) {
+if ( ! function_exists( 'gp_validate_email' ) ) {
+  function gp_validate_email( $value ) {
 
-    if ( ! sanitize_email( $value ) ) {
-      return __( 'Please write a valid email address!', 'gp-framework' );
+    if ( ! filter_var( $value, FILTER_VALIDATE_EMAIL ) ) {
+      return esc_html__( 'Please enter a valid email address.', 'gp-framework' );
     }
 
   }
-  add_filter( 'gp_validate_email', 'gp_validate_email', 10, 2 );
 }
 
 /**
@@ -26,15 +25,14 @@ if( ! function_exists( 'gp_validate_email' ) ) {
  * @version 1.0.0
  *
  */
-if( ! function_exists( 'gp_validate_numeric' ) ) {
-  function gp_validate_numeric( $value, $field ) {
+if ( ! function_exists( 'gp_validate_numeric' ) ) {
+  function gp_validate_numeric( $value ) {
 
     if ( ! is_numeric( $value ) ) {
-      return __( 'Please write a numeric data!', 'gp-framework' );
+      return esc_html__( 'Please enter a valid number.', 'gp-framework' );
     }
 
   }
-  add_filter( 'gp_validate_numeric', 'gp_validate_numeric', 10, 2 );
 }
 
 /**
@@ -45,11 +43,110 @@ if( ! function_exists( 'gp_validate_numeric' ) ) {
  * @version 1.0.0
  *
  */
-if( ! function_exists( 'gp_validate_required' ) ) {
+if ( ! function_exists( 'gp_validate_required' ) ) {
   function gp_validate_required( $value ) {
+
     if ( empty( $value ) ) {
-      return __( 'Fatal Error! This field is required!', 'gp-framework' );
+      return esc_html__( 'This field is required.', 'gp-framework' );
     }
+
   }
-  add_filter( 'gp_validate_required', 'gp_validate_required' );
+}
+
+/**
+ *
+ * URL validate
+ *
+ * @since 1.0.0
+ * @version 1.0.0
+ *
+ */
+if ( ! function_exists( 'gp_validate_url' ) ) {
+  function gp_validate_url( $value ) {
+
+    if ( ! filter_var( $value, FILTER_VALIDATE_URL ) ) {
+      return esc_html__( 'Please enter a valid URL.', 'gp-framework' );
+    }
+
+  }
+}
+
+/**
+ *
+ * Email validate for Customizer
+ *
+ * @since 1.0.0
+ * @version 1.0.0
+ *
+ */
+if ( ! function_exists( 'gp_customize_validate_email' ) ) {
+  function gp_customize_validate_email( $validity, $value, $wp_customize ) {
+
+    if ( ! sanitize_email( $value ) ) {
+      $validity->add( 'required', esc_html__( 'Please enter a valid email address.', 'gp-framework' ) );
+    }
+
+    return $validity;
+
+  }
+}
+
+/**
+ *
+ * Numeric validate for Customizer
+ *
+ * @since 1.0.0
+ * @version 1.0.0
+ *
+ */
+if ( ! function_exists( 'gp_customize_validate_numeric' ) ) {
+  function gp_customize_validate_numeric( $validity, $value, $wp_customize ) {
+
+    if ( ! is_numeric( $value ) ) {
+      $validity->add( 'required', esc_html__( 'Please enter a valid number.', 'gp-framework' ) );
+    }
+
+    return $validity;
+
+  }
+}
+
+/**
+ *
+ * Required validate for Customizer
+ *
+ * @since 1.0.0
+ * @version 1.0.0
+ *
+ */
+if ( ! function_exists( 'gp_customize_validate_required' ) ) {
+  function gp_customize_validate_required( $validity, $value, $wp_customize ) {
+
+    if ( empty( $value ) ) {
+      $validity->add( 'required', esc_html__( 'This field is required.', 'gp-framework' ) );
+    }
+
+    return $validity;
+
+  }
+}
+
+/**
+ *
+ * URL validate for Customizer
+ *
+ * @since 1.0.0
+ * @version 1.0.0
+ *
+ */
+if ( ! function_exists( 'gp_customize_validate_url' ) ) {
+  function gp_customize_validate_url( $validity, $value, $wp_customize ) {
+
+    if ( ! filter_var( $value, FILTER_VALIDATE_URL ) ) {
+      $validity->add( 'required', esc_html__( 'Please enter a valid URL.', 'gp-framework' ) );
+    }
+
+    return $validity;
+
+  }
 }

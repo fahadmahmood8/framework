@@ -1,49 +1,52 @@
-<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access pages directly.
+<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access directly.
 /**
  *
- * Field: Gallery
+ * Field: gallery
  *
  * @since 1.0.0
  * @version 1.0.0
  *
  */
-class GPFramework_Option_Gallery extends GPFramework_Options {
+if ( ! class_exists( 'GP_Field_gallery' ) ) {
+  class GP_Field_gallery extends GP_Fields {
 
-  public function __construct( $field, $value = '', $unique = '' ) {
-    parent::__construct( $field, $value, $unique );
-  }
+    public function __construct( $field, $value = '', $unique = '', $where = '', $parent = '' ) {
+      parent::__construct( $field, $value, $unique, $where, $parent );
+    }
 
-  public function output(){
+    public function render() {
 
-    echo $this->element_before();
+      $args = wp_parse_args( $this->field, array(
+        'add_title'   => esc_html__( 'Add Gallery', 'gp-framework' ),
+        'edit_title'  => esc_html__( 'Edit Gallery', 'gp-framework' ),
+        'clear_title' => esc_html__( 'Clear', 'gp-framework' ),
+      ) );
 
-    $value  = $this->element_value();
-    $add    = ( ! empty( $this->field['add_title'] ) ) ? $this->field['add_title'] : __( 'Add Gallery', 'gp-framework' );
-    $edit   = ( ! empty( $this->field['edit_title'] ) ) ? $this->field['edit_title'] : __( 'Edit Gallery', 'gp-framework' );
-    $clear  = ( ! empty( $this->field['clear_title'] ) ) ? $this->field['clear_title'] : __( 'Clear', 'gp-framework' );
-    $hidden = ( empty( $value ) ) ? ' hidden' : '';
+      $hidden = ( empty( $this->value ) ) ? ' hidden' : '';
 
-    echo '<ul>';
+      echo $this->field_before();
 
-    if( ! empty( $value ) ) {
+      echo '<ul>';
+      if ( ! empty( $this->value ) ) {
 
-      $values = explode( ',', $value );
+        $values = explode( ',', $this->value );
 
-      foreach ( $values as $id ) {
-        $attachment = wp_get_attachment_image_src( $id, 'thumbnail' );
-        echo '<li><img src="'. $attachment[0] .'" alt="" /></li>';
+        foreach ( $values as $id ) {
+          $attachment = wp_get_attachment_image_src( $id, 'thumbnail' );
+          echo '<li><img src="'. esc_url( $attachment[0] ) .'" /></li>';
+        }
+
       }
+      echo '</ul>';
+
+      echo '<a href="#" class="button button-primary gp-button">'. $args['add_title'] .'</a>';
+      echo '<a href="#" class="button gp-edit-gallery'. esc_attr( $hidden ) .'">'. $args['edit_title'] .'</a>';
+      echo '<a href="#" class="button gp-warning-primary gp-clear-gallery'. esc_attr( $hidden ) .'">'. $args['clear_title'] .'</a>';
+      echo '<input type="hidden" name="'. esc_attr( $this->field_name() ) .'" value="'. esc_attr( $this->value ) .'"'. $this->field_attributes() .'/>';
+
+      echo $this->field_after();
 
     }
 
-    echo '</ul>';
-    echo '<a href="#" class="button button-primary gp-add">'. $add .'</a>';
-    echo '<a href="#" class="button gp-edit'. $hidden .'">'. $edit .'</a>';
-    echo '<a href="#" class="button gp-warning-primary gp-remove'. $hidden .'">'. $clear .'</a>';
-    echo '<input type="text" name="'. $this->element_name() .'" value="'. $value .'"'. $this->element_class() . $this->element_attributes() .'/>';
-
-    echo $this->element_after();
-
   }
-
 }

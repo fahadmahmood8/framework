@@ -1,157 +1,4 @@
-<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access pages directly.
-/**
- *
- * Add framework element
- *
- * @since 1.0.0
- * @version 1.0.0
- *
- */
-if ( ! function_exists( 'gp_add_element' ) ) {
-  function gp_add_element( $field = array(), $value = '', $unique = '' ) {
-
-    $output     = '';
-    $depend     = '';
-    $sub        = ( isset( $field['sub'] ) ) ? 'sub-': '';
-    $unique     = ( isset( $unique ) ) ? $unique : '';
-    $languages  = gp_language_defaults();
-    $class      = 'GPFramework_Option_' . $field['type'];
-    $wrap_class = ( isset( $field['wrap_class'] ) ) ? ' ' . $field['wrap_class'] : '';
-    $hidden     = ( isset( $field['show_only_language'] ) && ( $field['show_only_language'] != $languages['current'] ) ) ? ' hidden' : '';
-    $is_pseudo  = ( isset( $field['pseudo'] ) ) ? ' gp-pseudo-field' : '';
-
-    if ( isset( $field['dependency'] ) ) {
-      $hidden  = ' hidden';
-      $depend .= ' data-'. $sub .'controller="'. $field['dependency'][0] .'"';
-      $depend .= ' data-'. $sub .'condition="'. $field['dependency'][1] .'"';
-      $depend .= " data-". $sub ."value='". $field['dependency'][2] ."'";
-    }
-
-    $output .= '<div class="gp-element gp-field-'. $field['type'] . $is_pseudo . $wrap_class . $hidden .'"'. $depend .'>';
-
-    if( isset( $field['title'] ) ) {
-      $field_desc = ( isset( $field['desc'] ) ) ? '<p class="gp-text-desc">'. $field['desc'] .'</p>' : '';
-      $output .= '<div class="gp-title gp_'.gp_underscore($field['title']).'"><h4>' . $field['title'] . '</h4>'. $field_desc .'</div>';
-    }
-
-    $output .= ( isset( $field['title'] ) ) ? '<div class="gp-fieldset">' : '';
-
-    $value   = ( !isset( $value ) && isset( $field['default'] ) ) ? $field['default'] : $value;
-    $value   = ( isset( $field['value'] ) ) ? $field['value'] : $value;
-
-    if( class_exists( $class ) ) {
-      ob_start();
-	  //pree($class);
-	  //pree($field);pree($value);pree($unique);exit;
-	  if(isset($field['repeater']) && $field['repeater']==true){
-		if(is_array($value) && !empty($value)){
-			foreach($value as $val){
-				$element = new $class( $field, $val, $unique );
-				$element->output();
-			}
-		}else{
-		  $element = new $class( $field, $value, $unique );
-		  $element->output();
-		}
-
-	  }else{
-		  $element = new $class( $field, $value, $unique );
-		  $element->output();
-	  }
-      
-      $output .= ob_get_clean();
-    } else {
-      $output .= '<p>'. __( 'This field class is not available!', 'gp-framework' ) .'</p>';
-    }
-
-    $output .= ( isset( $field['title'] ) ) ? '</div>' : '';
-    $output .= '<div class="clear"></div>';
-    $output .= '</div>';
-
-    return $output;
-
-  }
-}
-
-/**
- *
- * Encode string for backup options
- *
- * @since 1.0.0
- * @version 1.0.0
- *
- */
-if ( ! function_exists( 'gp_encode_string' ) ) {
-  function gp_encode_string( $string ) {
-    return rtrim( strtr( call_user_func( 'base'. '64' .'_encode', addslashes( gzcompress( serialize( $string ), 9 ) ) ), '+/', '-_' ), '=' );
-  }
-}
-
-/**
- *
- * Decode string for backup options
- *
- * @since 1.0.0
- * @version 1.0.0
- *
- */
-if ( ! function_exists( 'gp_decode_string' ) ) {
-  function gp_decode_string( $string ) {
-    return unserialize( gzuncompress( stripslashes( call_user_func( 'base'. '64' .'_decode', rtrim( strtr( $string, '-_', '+/' ), '=' ) ) ) ) );
-  }
-}
-
-/**
- *
- * Get google font from json file
- *
- * @since 1.0.0
- * @version 1.0.0
- *
- */
-if ( ! function_exists( 'gp_get_google_fonts' ) ) {
-  function gp_get_google_fonts() {
-
-    global $gp_google_fonts;
-
-    if( ! empty( $gp_google_fonts ) ) {
-
-      return $gp_google_fonts;
-
-    } else {
-
-      ob_start();
-      gp_locate_template( 'fields/typography/google-fonts.json' );
-      $json = ob_get_clean();
-
-      $gp_google_fonts = json_decode( $json );
-
-      return $gp_google_fonts;
-    }
-
-  }
-}
-
-/**
- *
- * Get icon fonts from json file
- *
- * @since 1.0.0
- * @version 1.0.0
- *
- */
-if ( ! function_exists( 'gp_get_icon_fonts' ) ) {
-  function gp_get_icon_fonts( $file ) {
-
-    ob_start();
-    gp_locate_template( $file );
-    $json = ob_get_clean();
-
-    return json_decode( $json );
-
-  }
-}
-
+<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access directly.
 /**
  *
  * Array search key & value
@@ -183,40 +30,145 @@ if ( ! function_exists( 'gp_array_search' ) ) {
 
 /**
  *
- * Load options fields
+ * Between Microtime
  *
  * @since 1.0.0
  * @version 1.0.0
  *
  */
-if ( ! function_exists( 'gp_load_option_fields' ) ) {
-  function gp_load_option_fields() {
+if ( ! function_exists( 'gp_timeout' ) ) {
+  function gp_timeout( $timenow, $starttime, $timeout = 30 ) {
+    return ( ( $timenow - $starttime ) < $timeout ) ? true : false;
+  }
+}
 
-    $located_fields = array();
+/**
+ *
+ * Check for wp editor api
+ *
+ * @since 1.0.0
+ * @version 1.0.0
+ *
+ */
+if ( ! function_exists( 'gp_wp_editor_api' ) ) {
+  function gp_wp_editor_api() {
+    global $wp_version;
+    return version_compare( $wp_version, '4.8', '>=' );
+  }
+}
 
-    foreach ( glob( gp_DIR .'/fields/*/*.php' ) as $gp_field ) {
-      $located_fields[] = basename( $gp_field );
-      gp_locate_template( str_replace(  gp_DIR, '', $gp_field ) );
+/**
+ *
+ * Get a Guava Pattern option (stored as one array in the GP_OPTION row)
+ *
+ * Kept compatible with every earlier Guava Pattern release, so theme code calling
+ * gp_get_option( 'key' ) keeps working and the saved data does not need migrating.
+ *
+ * @since 1.0.0
+ * @version 2.0.0
+ *
+ */
+if ( ! function_exists( 'gp_get_option' ) ) {
+  function gp_get_option( $option_name = '', $default = '' ) {
+
+    $options = apply_filters( 'gp_get_option', get_option( GP_OPTION ), $option_name, $default );
+
+    if ( ! empty( $option_name ) && is_array( $options ) && ! empty( $options[$option_name] ) ) {
+      return $options[$option_name];
     }
 
-    $override_name = apply_filters( 'gp_framework_override', 'gp-framework-override' );
-    $override_dir  = get_template_directory() .'/'. $override_name .'/fields';
+    return ( ! empty( $default ) ) ? $default : null;
 
-    if( is_dir( $override_dir ) ) {
+  }
+}
 
-      foreach ( glob( $override_dir .'/*/*.php' ) as $override_field ) {
+/**
+ *
+ * Set a Guava Pattern option
+ *
+ * @since 1.0.0
+ * @version 2.0.0
+ *
+ */
+if ( ! function_exists( 'gp_set_option' ) ) {
+  function gp_set_option( $option_name = '', $new_value = '' ) {
 
-        if( ! in_array( basename( $override_field ), $located_fields ) ) {
+    $options = apply_filters( 'gp_set_option', get_option( GP_OPTION ), $option_name, $new_value );
+    $options = ( is_array( $options ) ) ? $options : array();
 
-          gp_locate_template( str_replace( $override_dir, '/fields', $override_field ) );
-
-        }
-
-      }
-
+    if ( ! empty( $option_name ) ) {
+      $options[$option_name] = $new_value;
+      update_option( GP_OPTION, $options );
     }
 
-    do_action( 'gp_load_option_fields' );
+  }
+}
 
+/**
+ *
+ * Get a Guava Pattern post meta value (stored as one array in the GP_META row)
+ *
+ * @since 1.0.0
+ * @version 2.0.0
+ *
+ */
+if ( ! function_exists( 'gp_get_meta' ) ) {
+  function gp_get_meta( $id, $option_name = '', $default = '' ) {
+
+    $options = get_post_meta( $id, GP_META, true );
+
+    if ( ! empty( $option_name ) && is_array( $options ) && ! empty( $options[$option_name] ) ) {
+      return $options[$option_name];
+    }
+
+    return ( ! empty( $default ) ) ? $default : null;
+
+  }
+}
+
+/**
+ *
+ * Map the field type names older Guava Pattern releases used to the current field types
+ *
+ * @since 2.0.0
+ * @version 2.0.0
+ *
+ */
+if ( ! function_exists( 'gp_field_type' ) ) {
+  function gp_field_type( $type = 'text' ) {
+
+    $map = apply_filters( 'gp_legacy_field_types', array(
+      'color_picker' => 'color',
+      'wysiwyg'      => 'wp_editor',
+      'image'        => 'upload',
+    ) );
+
+    $type = ( isset( $map[$type] ) ) ? $map[$type] : $type;
+
+    return ( class_exists( 'GP_Field_'. $type ) ) ? $type : 'text';
+
+  }
+}
+
+/**
+ *
+ * Nonce protected URL that clears the dynamically collected field registry
+ *
+ * $what: 'options' (admin options panel) | 'pages' (page metabox)
+ *
+ * @since 2.0.0
+ * @version 2.0.0
+ *
+ */
+if ( ! function_exists( 'gp_reset_url' ) ) {
+  function gp_reset_url( $what = 'options' ) {
+    $arg = ( $what === 'pages' ) ? 'reset_gp_pages' : 'reset_gp';
+    return wp_nonce_url( add_query_arg( $arg, '1', admin_url( 'admin.php' ) ), 'gp_reset' );
+  }
+}
+
+if ( ! function_exists( 'gp_can_reset' ) ) {
+  function gp_can_reset( $arg ) {
+    return ( is_admin() && isset( $_GET[$arg] ) && current_user_can( 'manage_options' ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'gp_reset' ) );
   }
 }

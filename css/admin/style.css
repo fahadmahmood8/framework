@@ -24,6 +24,36 @@
 
 	}
 
+	/* Documentation / Font Awesome links in the panel header */
+	.gp-header h1 small.gp-header-links{
+
+		display:inline-block;
+		margin-left:12px;
+		line-height:1.6;
+		vertical-align:middle;
+		white-space:nowrap;
+
+	}
+	.gp-header h1 small.gp-header-links a,
+	.gp-header h1 small.gp-header-links a.wp-docs,
+	.gp-header h1 small.gp-header-links a.wp-fa{
+
+		color:white;
+		text-decoration:none;
+		position:static;
+		left:auto;
+		border:0;
+		padding:0;
+
+	}
+	.gp-header h1 small.gp-header-links a + a::before{
+
+		content:"|";
+		margin:0 8px;
+		opacity:.6;
+
+	}
+
 
 	.gp-section-title h3{
 

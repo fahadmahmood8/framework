@@ -1,35 +1,38 @@
-<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access pages directly.
+<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access directly.
 /**
  *
- * Field: Backup
+ * Field: backup
  *
  * @since 1.0.0
  * @version 1.0.0
  *
  */
-class GPFramework_Option_backup extends GPFramework_Options {
+if ( ! class_exists( 'GP_Field_backup' ) ) {
+  class GP_Field_backup extends GP_Fields {
 
-  public function __construct( $field, $value = '', $unique = '' ) {
-    parent::__construct( $field, $value, $unique );
+    public function __construct( $field, $value = '', $unique = '', $where = '', $parent = '' ) {
+      parent::__construct( $field, $value, $unique, $where, $parent );
+    }
+
+    public function render() {
+
+      $unique = $this->unique;
+      $nonce  = wp_create_nonce( 'gp_backup_nonce' );
+      $export = add_query_arg( array( 'action' => 'gp-export', 'unique' => $unique, 'nonce' => $nonce ), admin_url( 'admin-ajax.php' ) );
+
+      echo $this->field_before();
+
+      echo '<textarea name="gp_import_data" class="gp-import-data"></textarea>';
+      echo '<button type="submit" class="button button-primary gp-confirm gp-import" data-unique="'. esc_attr( $unique ) .'" data-nonce="'. esc_attr( $nonce ) .'">'. esc_html__( 'Import', 'gp-framework' ) .'</button>';
+      echo '<hr />';
+      echo '<textarea readonly="readonly" class="gp-export-data">'. esc_attr( json_encode( get_option( $unique ) ) ) .'</textarea>';
+      echo '<a href="'. esc_url( $export ) .'" class="button button-primary gp-export" target="_blank">'. esc_html__( 'Export & Download', 'gp-framework' ) .'</a>';
+      echo '<hr />';
+      echo '<button type="submit" name="gp_transient[reset]" value="reset" class="button gp-warning-primary gp-confirm gp-reset" data-unique="'. esc_attr( $unique ) .'" data-nonce="'. esc_attr( $nonce ) .'">'. esc_html__( 'Reset', 'gp-framework' ) .'</button>';
+
+      echo $this->field_after();
+
+    }
+
   }
-
-  public function output() {
-
-    echo $this->element_before();
-
-    echo '<textarea name="'. $this->unique .'[import]"'. $this->element_class() . $this->element_attributes() .'></textarea>';
-    submit_button( __( 'Import a Backup', 'gp-framework' ), 'primary gp-import-backup', 'backup', false );
-    echo '<small>( '. __( 'copy-paste your backup string here', 'gp-framework' ).' )</small>';
-
-    echo '<hr />';
-
-    echo '<textarea name="_nonce"'. $this->element_class() . $this->element_attributes() .' disabled="disabled">'. gp_encode_string( get_option( $this->unique ) ) .'</textarea>';
-    echo '<a href="'. admin_url( 'admin-ajax.php?action=gp-export-options' ) .'" class="button button-primary" target="_blank">'. __( 'Export and Download Backup', 'gp-framework' ) .'</a>';
-    echo '<small>-( '. __( 'or', 'gp-framework' ) .' )-</small>';
-    submit_button( __( '!!! Reset All Options !!!', 'gp-framework' ), 'gp-warning-primary gp-reset-confirm', $this->unique . '[resetall]', false );
-    echo '<small class="gp-text-warning">'. __( 'Please be sure for reset all of framework options.', 'gp-framework' ) .'</small>';
-    echo $this->element_after();
-
-  }
-
 }

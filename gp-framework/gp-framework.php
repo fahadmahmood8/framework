@@ -1,78 +1,68 @@
-<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access pages directly.
+<?php if ( ! defined( 'ABSPATH' ) ) { die; } // Cannot access directly.
 /**
  *
- * ------------------------------------------------------------------------------------------------
+ * @package   Guava Pattern - WordPress Theme Development Framework
+ * @link      https://guavapattern.com
+ * @license   GPL-2.0-or-later
  *
- * Codestar Framework
- * A Lightweight and easy-to-use WordPress Options Framework
+ * Guava Pattern Framework 2.0.0
  *
- * Plugin Name: Codestar Framework
- * Plugin URI: http://guavapattern.com/
- * Author: Codestar
- * Author URI: http://guavapattern.com/
- * Version: 1.0.0
- * Description: A Lightweight and easy-to-use WordPress Options Framework
- * License: GPLv2 or later
- * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
+ * The options engine is built on the Codestar Framework 2.3.1
+ * (Copyright 2015-2022 Codestar, https://codestarframework.com, GPL-2.0-or-later),
+ * rebuilt for Guava Pattern: GP / gp_ prefixes, a native metabox, bundled assets,
+ * and the dynamic gp_place() / gp_page() option registry.
+ *
  * Text Domain: gp-framework
- *
- * ------------------------------------------------------------------------------------------------
- *
- * Copyright 2016 Codestar <info@guavapattern.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- *
- * ------------------------------------------------------------------------------------------------
+ * Domain Path: /languages
  *
  */
 
 // ------------------------------------------------------------------------------------------------
-require_once plugin_dir_path( __FILE__ ) .'/gp-framework-path.php';
+// Constants
 // ------------------------------------------------------------------------------------------------
+if ( ! defined( 'GP_VERSION' ) ) {
+  $gp_framework_info = ( function_exists( 'gp_info' ) ) ? gp_info() : array();
+  define( 'GP_VERSION', ( ! empty( $gp_framework_info['version'] ) ) ? $gp_framework_info['version'] : '2.0.0' );
+  unset( $gp_framework_info );
+}
 
-if( ! function_exists( 'gp_framework_init' ) && ! class_exists( 'GPFramework' ) ) {
-  function gp_framework_init() {
+defined( 'GP_OPTION' ) or define( 'GP_OPTION', '_gp_options' ); // options row (admin panel)
+defined( 'GP_META' )   or define( 'GP_META',   'gp_meta' );     // page metabox row
 
-    // active modules
-    defined( 'gp_ACTIVE_FRAMEWORK' )  or  define( 'gp_ACTIVE_FRAMEWORK',  true );
-    defined( 'gp_ACTIVE_METABOX'   )  or  define( 'gp_ACTIVE_METABOX',    true );
-    defined( 'gp_ACTIVE_SHORTCODE' )  or  define( 'gp_ACTIVE_SHORTCODE',  true );
-    defined( 'gp_ACTIVE_CUSTOMIZE' )  or  define( 'gp_ACTIVE_CUSTOMIZE',  true );
+// ------------------------------------------------------------------------------------------------
+// Core
+// ------------------------------------------------------------------------------------------------
+require_once dirname( __FILE__ ) .'/classes/setup.class.php';
 
-    // helpers
-    gp_locate_template( 'functions/deprecated.php'     );
-    gp_locate_template( 'functions/helpers.php'        );
-    gp_locate_template( 'functions/actions.php'        );
-    gp_locate_template( 'functions/enqueue.php'        );
-    gp_locate_template( 'functions/sanitize.php'       );
-    gp_locate_template( 'functions/validate.php'       );
+// Placeholder tokens: {{gp:key|type|group}} in block theme HTML files (see functions/tokens.php)
+GP_Setup::include_plugin_file( 'functions/tokens.php' );
 
-    // classes
-    gp_locate_template( 'classes/abstract.class.php'   );
-    gp_locate_template( 'classes/options.class.php'    );
-    gp_locate_template( 'classes/framework.class.php'  );
-    gp_locate_template( 'classes/metabox.class.php'    );
-    gp_locate_template( 'classes/shortcode.class.php'  );
-    gp_locate_template( 'classes/customize.class.php'  );
+// ------------------------------------------------------------------------------------------------
+// Configs: build the admin panel and the page metabox before GP::setup() runs
+// ------------------------------------------------------------------------------------------------
+if ( ! function_exists( 'gp_framework_load_configs' ) ) {
+  function gp_framework_load_configs() {
 
-    // configs
-    gp_locate_template( 'config/framework.config.php'  );
-    gp_locate_template( 'config/metabox.config.php'    );
-    gp_locate_template( 'config/shortcode.config.php'  );
-    gp_locate_template( 'config/customize.config.php'  );
+    static $loaded = false;
+
+    if ( $loaded ) {
+      return;
+    }
+
+    $loaded = true;
+
+    // Every module can be switched off before this point:
+    // define( 'GP_ACTIVE_FRAMEWORK', false ); define( 'GP_ACTIVE_METABOX', false );
+    if ( ! defined( 'GP_ACTIVE_FRAMEWORK' ) || GP_ACTIVE_FRAMEWORK ) {
+      GP_Setup::include_plugin_file( 'config/framework.config.php' );
+    }
+
+    if ( ! defined( 'GP_ACTIVE_METABOX' ) || GP_ACTIVE_METABOX ) {
+      GP_Setup::include_plugin_file( 'config/metabox.config.php' );
+    }
 
   }
-  add_action( 'init', 'gp_framework_init', 10 );
+  add_action( 'after_setup_theme', 'gp_framework_load_configs', 5 );
+  add_action( 'init', 'gp_framework_load_configs', 5 );
+  add_action( 'plugins_loaded', 'gp_framework_load_configs', 5 );
 }

@@ -1,11 +1,17 @@
 <?php
 
+	// Guava Pattern 2.0.0 -- theme engine. Loads the GP framework (gp-framework/) and registers the
+	// theme helpers: gp_place(), gp_page(), gp_option(), gp_gallery() and friends.
+	if ( ! defined( 'ABSPATH' ) ) { die; }
+
+	// LIVE switches the path handling below between a live server and a local sub-folder install.
+	// Define it in wp-config.php (true/false); it defaults to false so a missing constant is not fatal.
+	defined('LIVE') or define('LIVE', false);
+
 	//http://getbootstrap.com/css/
 	//http://guavapattern.com/documentation/#configuration
-	//define( 'gp_ACTIVE_FRAMEWORK',  true  ); // default true
-	//define( 'gp_ACTIVE_METABOX',    false ); // default true
-	//define( 'gp_ACTIVE_SHORTCODE',  false ); // default true
-	//define( 'gp_ACTIVE_CUSTOMIZE',  false ); // default true
+	//define( 'GP_ACTIVE_FRAMEWORK',  false ); // default true: the admin options panel
+	//define( 'GP_ACTIVE_METABOX',    false ); // default true: the page options metabox
 	require_once dirname( __FILE__ ) .'/gp-framework/gp-framework.php';
 	
 	define('GP_GO', false);
@@ -83,7 +89,7 @@
 
 	}
 
-	.gp-framework .gp-content .gp-section-title,
+	.gp-options .gp-content .gp-section-title,
 
 	.current.menu-top.menu-icon-generic.toplevel_page_guava-pattern.menu-top-first.menu-top-last{
 
@@ -128,7 +134,7 @@
 	
 	function gp_init() {
 		
-		init_sessions();
+		// init_sessions() is no longer called: PHP sessions break page caching and the REST API.
 		
 		global $_gp_absolute, $_gp_relative, $gp_theme, $gp_addons;
 		
@@ -301,7 +307,7 @@
 		foreach ($css_dir as $filename) {
 			
 			 $slug = basename($filename);
-			 $ext = end(explode('.', $slug));
+			 $ext = pathinfo($slug, PATHINFO_EXTENSION);
 			 
 			 if(!array_key_exists($ext, $_gp_unique))
 			 $_gp_unique[$ext] = array();
@@ -322,7 +328,7 @@
 		//LOADING SCRIPTS
 		foreach ($js_dir as $filename) {
 			 $slug = basename($filename);
-			 $ext = end(explode('.', $slug));
+			 $ext = pathinfo($slug, PATHINFO_EXTENSION);
 			 //pree($ext);
 			 if(!array_key_exists($ext, $_gp_unique))
 			 $_gp_unique[$ext] = array();			 
@@ -373,10 +379,11 @@
 		return (!is_array($feat_image)?'':current($feat_image));
 	}
 
-	function gp_page($id=0, $key, $type='text', $group='page_options', $repeater=false){
+	function gp_page($id=0, $key='', $type='text', $group='page_options', $repeater=false){
 		
 		
-		return nl2br(gp_page_option($id, $key, $type, $group, $repeater));
+		$value = gp_page_option($id, $key, $type, $group, $repeater);
+		return is_array($value)?$value:nl2br((string)$value); // repeater fields come back as arrays
 	}
 	function gp_page_shortcode($atts=array(), $content=''){
 		$content = gp_place($atts['key'], $atts['type'], $atts['group']);
@@ -385,7 +392,8 @@
 	add_shortcode('gp_page', 'gp_page_shortcode');
 		
 	function gp_place($key, $type='text', $group='global_options', $args=array()){
-		return nl2br(gp_option($key, $type, $group, $args));
+		$value = gp_option($key, $type, $group, $args);
+		return is_array($value)?$value:nl2br((string)$value);
 	}
 	function gp_place_shortcode($atts=array(), $content=''){
 		$content = gp_place($atts['key'], $atts['type'], $atts['group']);
@@ -422,7 +430,7 @@
 		return gp_get_option($key);
 	}
 	
-	function gp_page_option($id, $key, $type='text', $group='page_options', $repeater){
+	function gp_page_option($id, $key, $type='text', $group='page_options', $repeater=false){
 		global $_gp_page_arr, $_gp_page_groups;
 		$_gp_page_arr[$type][] = array('key'=>$key, 'repeater'=>$repeater);
 		$_gp_page_groups[$group][] = $key;
@@ -501,48 +509,62 @@
 	add_shortcode('gp_image', 'gp_image_code');
 		
 	function gp_info($type='current'){
-		$ret = array();		
+		$ret = array();
 
 		$file = dirname( __FILE__ ) .'/README.md';
 
 		$ret['current'] = gp_readme($file);
 
+		// the upcoming release info is fetched from GitHub at most once every 12 hours
+		$upcoming = function_exists('get_transient') ? get_transient('gp_info_upcoming') : false;
 
-		if(isset($_SESSION['gp_info'])){
-			$ret = $_SESSION['gp_info'];
-		}else{
-			
+		if(!is_array($upcoming)){
+
 			$master = 'https://raw.githubusercontent.com/fahadmahmood8/guava-pattern/master/README.md';
 
-			$ret['upcoming'] = gp_readme($master);
+			$upcoming = gp_readme($master);
+
+			if(function_exists('set_transient'))
+			set_transient('gp_info_upcoming', $upcoming, 12 * HOUR_IN_SECONDS);
 		}
-		
+
+		$ret['upcoming'] = $upcoming;
+
 		if(isset($ret[$type]))
 		$ret = $ret[$type];
-		
-		
+
 		return $ret;
 	}
-		
-		
+
+
 	function gp_readme($file){
 		$ret = array();
-		$file = file_get_contents($file);
-		$arr = nl2br($file);
-		$arr = explode('<br />', $arr);
+
+		if(preg_match('#^https?://#i', $file)){
+			if(!function_exists('wp_remote_get'))
+			return $ret;
+			$response = wp_remote_get($file, array('timeout'=>3));
+			$file = is_wp_error($response) ? '' : wp_remote_retrieve_body($response);
+		}else{
+			$file = is_readable($file) ? file_get_contents($file) : '';
+		}
+
+		$arr = preg_split('/\r\n|\r|\n/', (string)$file);
 		$arr = array_filter(array_map('trim', $arr));
 		if(!empty($arr)){
 			foreach($arr as $k=>$v){
+				if(strpos($v, ':')===false)
+				continue;
 				$elems = explode(':', $v);
 				$key = current($elems);
 				array_shift($elems);
 				$val = implode(':', $elems);
-				$ret[$key] = $val;	
-			}			
-		}	
-		return $ret;	
+				$ret[$key] = $val;
+			}
+		}
+		return $ret;
 	}
-		
+
 	if ( ! function_exists( 'gp_theme_comment_nav' ) ) :
 	
 	
@@ -612,14 +634,16 @@
 		
 		$_gp_page_arr_db = (is_array($_gp_page_arr_db)?$_gp_page_arr_db:array());
 		
-		$_gp_repeater_groups_db = (is_array($_gp_repeater_groups)?$_gp_repeater_groups:array());
+		$_gp_repeater_groups_db = get_option('_gp_repeater_groups');
+		$_gp_repeater_groups_db = (is_array($_gp_repeater_groups_db)?$_gp_repeater_groups_db:array());
+		$_gp_repeater_groups = (is_array($_gp_repeater_groups)?$_gp_repeater_groups:array());
 		
 		//pree($_gp_page_arr_db);
 				
 		
 		if(!empty($_gp_core_arr)){
 			foreach($_gp_core_arr as $type=>$arr){
-				$_gp_core_arr_db[$type] = (is_array($_gp_core_arr_db[$type])?$_gp_core_arr_db[$type]:array());
+				$_gp_core_arr_db[$type] = (isset($_gp_core_arr_db[$type]) && is_array($_gp_core_arr_db[$type])?$_gp_core_arr_db[$type]:array());
 				if(!empty($arr)){
 					foreach($arr as $k){
 						if(!in_array($k, $_gp_core_arr_db[$type])){
@@ -639,7 +663,7 @@
 
 		if(!empty($_gp_page_arr)){
 			foreach($_gp_page_arr as $type=>$arr){
-				$_gp_page_arr_db[$type] = (is_array($_gp_page_arr_db[$type])?$_gp_page_arr_db[$type]:array());
+				$_gp_page_arr_db[$type] = (isset($_gp_page_arr_db[$type]) && is_array($_gp_page_arr_db[$type])?$_gp_page_arr_db[$type]:array());
 				if(!empty($arr)){
 					foreach($arr as $k){
 						if(!in_array($k, $_gp_page_arr_db[$type])){
@@ -718,7 +742,7 @@
 
 		if(!empty($_gp_repeater_groups)){
 			foreach($_gp_repeater_groups as $type=>$arr){
-				$_gp_repeater_groups_db[$type] = (is_array($_gp_repeater_groups_db[$type])?$_gp_repeater_groups_db[$type]:array());
+				$_gp_repeater_groups_db[$type] = (isset($_gp_repeater_groups_db[$type]) && is_array($_gp_repeater_groups_db[$type])?$_gp_repeater_groups_db[$type]:array());
 				if(!empty($arr)){
 					foreach($arr as $k){
 						if(!in_array($k, $_gp_repeater_groups_db[$type])){
@@ -1003,12 +1027,12 @@
 		 
 		switch($video_type){
 			case 'vimeo':
-				$arr['vimeo_link'] = 'https://player.vimeo.com/video/'.end(explode('/', gp_str($arr['vimeo_link'])));
+				$arr['vimeo_link'] = 'https://player.vimeo.com/video/'.basename(untrailingslashit(gp_str($arr['vimeo_link'])));
 				$ret = ' <iframe src="'.$arr['vimeo_link'].'" width="'.$dim[0].'" height="'.$dim[1].'" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>';
 			break;
 			
 			case 'youtube':
-				$video_link = end(explode('v=', end(explode('/', gp_str($arr['youtube_link'])))));
+				$video_link = preg_replace('/^.*(?:v=|\/)/', '', strtok(gp_str($arr['youtube_link']), '&'));
 				$arr['youtube_link'] = 'https://www.youtube.com/embed/'.$video_link;
 				$ret = ' <iframe src="'.$arr['youtube_link'].'" width="'.$dim[0].'" height="'.$dim[1].'" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>';
 			break;
@@ -1114,7 +1138,9 @@
 	function gp_repeater($group_id, $type='page'){
 	
 		global $_gp_repeater_groups;
-		
+
+		$_gp_repeater_groups = (is_array($_gp_repeater_groups)?$_gp_repeater_groups:array());
+
 		if(!array_key_exists($type, $_gp_repeater_groups)){
 			$_gp_repeater_groups[$type] = array();
 		}
@@ -1129,7 +1155,7 @@
 
 	function gp_header_scripts(){
 		global $post, $lang;
-		$orgurl = is_front_page()?get_bloginfo('url'):get_permalink( $post->ID );
+		$orgurl = (is_front_page() || empty($post->ID))?get_bloginfo('url'):get_permalink( $post->ID );
 		$thisurl = $orgurl;
 		if($lang!='' && substr($thisurl, -3, 2)=='_'.$lang)
 		$thisurl = str_replace('_'.$lang, '', $orgurl);
@@ -1137,7 +1163,7 @@
 		
 ?>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,900" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,900" rel="stylesheet" />
 	<script type="text/javascript" language="javascript">
 	var siteurl = '<?php echo get_bloginfo('url'); ?>/';
 	var orgurl = '<?php echo $orgurl; ?>';
@@ -1316,7 +1342,7 @@
 	
 	add_filter( 'posts_where' , 'elbisc_posts_where' );
 	
-	function get_within($tag='div', $content){
+	function get_within($tag='div', $content=''){
 		$regex = '#<\s*?'.$tag.'\b[^>]*>(.*?)</'.$tag.'\b[^>]*>#s';
 				
 		preg_match_all($regex, $content, $matches);	
